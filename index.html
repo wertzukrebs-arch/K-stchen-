@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Kästchen-Zeichenblatt</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    #canvasWrapper {
+      border: 3px solid red;
+      width: 794px;
+      height: 1123px;
+      position: relative;
+    }
+    canvas {
+      display: block;
+    }
+    label {
+      font-weight: bold;
+    }
+    button {
+      padding: 8px 16px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .active {
+      background-color: #28a745 !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <div>
+      <label for="colorPicker">Farbe auswählen:</label>
+      <input type="color" id="colorPicker" value="#ff0000">
+    </div>
+    <div>
+      <label for="gridSize">Kästchengröße (mm):</label>
+      <select id="gridSize">
+        <option value="1">1 mm</option>
+        <option value="2">2 mm</option>
+        <option value="3" selected>3 mm</option>
+        <option value="4">4 mm</option>
+        <option value="5">5 mm</option>
+      </select>
+    </div>
+    <div>
+      <button id="downloadBtn">Als Bild herunterladen</button>
+    </div>
+    <div>
+      <button id="eraserBtn">Radierer</button>
+    </div>
+  </div>
+
+  <div id="canvasWrapper">
+    <canvas id="drawingCanvas" width="794" height="1123"></canvas>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("drawingCanvas");
+    const ctx = canvas.getContext("2d");
+    const gridSizeSelect = document.getElementById("gridSize");
+    const colorPicker = document.getElementById("colorPicker");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const eraserBtn = document.getElementById("eraserBtn");
+
+    let gridSize = parseInt(gridSizeSelect.value) * 3.78; // 1mm ≈ 3.78px
+    let filledCells = {};
+    let eraserMode = false;
+
+    function drawGrid() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = "#ccc";
+      ctx.lineWidth = 0.5;
+
+      for (let x = 0; x < canvas.width; x += gridSize) {
+        for (let y = 0; y < canvas.height; y += gridSize) {
+          ctx.strokeRect(x, y, gridSize, gridSize);
+        }
+      }
+
+      // Gefüllte Zellen zeichnen
+      for (const key in filledCells) {
+        const [x, y] = key.split(",").map(Number);
+        ctx.fillStyle = filledCells[key];
+        ctx.fillRect(x, y, gridSize, gridSize);
+      }
+    }
+
+    function getCellCoordinates(x, y) {
+      const cellX = Math.floor(x / gridSize) * gridSize;
+      const cellY = Math.floor(y / gridSize) * gridSize;
+      return [cellX, cellY];
+    }
+
+    canvas.addEventListener("click", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const [cellX, cellY] = getCellCoordinates(x, y);
+      const key = `${cellX},${cellY}`;
+
+      if (eraserMode) {
+        delete filledCells[key]; // Kästchen löschen
+      } else {
+        filledCells[key] = colorPicker.value; // Kästchen füllen
+      }
+      drawGrid();
+    });
+
+    gridSizeSelect.addEventListener("change", () => {
+      gridSize = parseInt(gridSizeSelect.value) * 3.78;
+      drawGrid();
+    });
+
+    downloadBtn.addEventListener("click", () => {
+      const link = document.createElement("a");
+      link.download = "kaestchenblatt.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    });
+
+    eraserBtn.addEventListener("click", () => {
+      eraserMode = !eraserMode;
+      eraserBtn.classList.toggle("active", eraserMode);
+    });
+
+    drawGrid();
+  </script>
+</body>
+</html>
